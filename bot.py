@@ -4,26 +4,30 @@ from config import *
 import pyromod
 import pyrogram.utils
 import os
-import socket
 import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 pyrogram.utils.MIN_CHAT_ID = -999999999999
 pyrogram.utils.MIN_CHANNEL_ID = -100999999999999
 
 bot = Client("Renamer", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH, plugins=dict(root='plugins'))
 
-# --- Open a dummy port for Render ---
-def open_port():
-    port = int(os.environ.get("PORT", 10000))
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("0.0.0.0", port))
-    s.listen()
-    print(f"Dummy port listening on {port}")
-    s.accept()  # this will block but in a thread
-    s.close()
+# --- Minimal HTTP server for Render port detection ---
+class DummyHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Bot is running")
 
-# Run dummy port in a background thread
-threading.Thread(target=open_port, daemon=True).start()
+def run_http_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), DummyHandler)
+    print(f"HTTP server listening on {port}")
+    server.serve_forever()
+
+# Start HTTP server in background thread
+threading.Thread(target=run_http_server, daemon=True).start()
 
 # --- Start your bot normally ---
 if STRING_SESSION:
