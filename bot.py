@@ -8,45 +8,34 @@ import asyncio
 from fastapi import FastAPI
 import uvicorn
 
-# Minimum chat/channel IDs
 pyrogram.utils.MIN_CHAT_ID = -999999999999
 pyrogram.utils.MIN_CHANNEL_ID = -100999999999999
 
-# --- Read Render port ---
-PORT = int(os.environ.get("PORT", 10000))  # Render provides $PORT automatically
+PORT = int(os.environ.get("PORT", 10000))  # Render port
 
-# --- Create minimal FastAPI server for Render ---
+# FastAPI server for Render
 app_fastapi = FastAPI()
 
 @app_fastapi.get("/")
 def root():
     return {"status": "Bot is running"}
 
-# --- Initialize Pyrogram bot ---
-bot = Client(
-    "Renamer",
-    bot_token=BOT_TOKEN,
-    api_id=API_ID,
-    api_hash=API_HASH,
-    plugins=dict(root='plugins')
-)
-
+# Function to start your Pyrogram bots
 async def start_bots():
-    """Start bots in background for STRING_SESSION or normal bot."""
     if STRING_SESSION:
-        apps = [Client2, bot]
+        apps = [Client2, Client("Renamer", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH, plugins=dict(root='plugins'))]
         for app in apps:
             await app.start()
-        # Keep bots running
-        await idle()
+        await idle()  # Keep bots running
         for app in apps:
             await app.stop()
     else:
+        bot = Client("Renamer", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH, plugins=dict(root='plugins'))
         await bot.start()
         await idle()
         await bot.stop()
 
-# --- Run both FastAPI server and Pyrogram bot ---
+# Run FastAPI + Pyrogram bot in same asyncio event loop
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.create_task(start_bots())
